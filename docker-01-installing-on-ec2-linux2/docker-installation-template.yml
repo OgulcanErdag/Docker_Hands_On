@@ -29,14 +29,13 @@ Resources:
     Type: AWS::EC2::Instance
     Properties:
       ImageId: ami-051f7e7f6c2f40dc1
-      InstanceType: t2.micro
+      InstanceType: t3.micro
       KeyName: !Ref KeyPairName
       SecurityGroupIds:
         - !GetAtt DockerMachineSecurityGroup.GroupId
-      Tags:                
-        -                        
-          Key: Name
-          Value: !Sub Docker Machine of ${AWS::StackName}   
+      Tags:
+        - Key: Name
+          Value: !Sub Docker Machine of ${AWS::StackName}
       UserData:
         Fn::Base64: |
           #!/bin/bash
@@ -52,6 +51,6 @@ Resources:
 Outputs:
   WebsiteURL:
     Description: Docker Machine DNS Name
-    Value: !Sub 
+    Value: !Sub
       - ${PublicAddress}
       - PublicAddress: !GetAtt DockerMachine.PublicDnsName
