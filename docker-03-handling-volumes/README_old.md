@@ -2,7 +2,7 @@
 
 This hands-on training aims to teach students how to handle volumes in Docker containers.
 
-## Learning Outcomes 
+## Learning Outcomes
 
 At the end of this hands-on training, students will be able to;
 
@@ -40,7 +40,7 @@ At the end of this hands-on training, students will be able to;
 
 ## Part 1 - Launch a Docker Machine Instance and Connect with SSH
 
-- Launch a Docker machine (t2.micro) on Amazon Linux 2 AMI with a security group allowing SSH connections using the [Cloudformation Template for Docker Machine Installation](../S1A-docker-01-installing-on-ec2-linux2/docker-installation-template.yml).
+- Launch a Docker machine (t2.micro) on Amazon Linux 2 AMI with a security group allowing SSH connections using the [Cloudformation Template for Docker Machine Installation](../docker-01-installing-on-ec2-linux2/docker-installation-template.yml).
 
 - Connect to your instance with SSH.
 
@@ -95,7 +95,7 @@ docker start 737 && docker exec -it 737 ash
 - Show that the file `short-life.txt` is still there, and explain why it is there. (Container holds its data until removed).
 
 ```bash
-ls /home 
+ls /home
 ```
 
 - Exit the container and return to the ec2-user bash shell.
@@ -304,12 +304,12 @@ docker volume rm my-vol
 
 ## Part 5 - Docker Volume Behaviors
 
-|No | Situation   | Behaviour |
-| ---- | ----------- | ------------ |
-| 1    | If there is no target directory. | The target directory is created, and files inside the volume are copied to this directory. |
-| 2    | If there is a target directory, but it is empty. | The files in the volume are copied to the target directory.  |
-| 3    | If there is a target directory and it is not empty, but the volume is empty. | The files in the target directory are copied to volumes. |
-| 4    | If the volume is not empty. | There will be just the files inside the volume, regardless of whether the target directory is full or empty. |
+| No  | Situation                                                                    | Behaviour                                                                                                    |
+| --- | ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 1   | If there is no target directory.                                             | The target directory is created, and files inside the volume are copied to this directory.                   |
+| 2   | If there is a target directory, but it is empty.                             | The files in the volume are copied to the target directory.                                                  |
+| 3   | If there is a target directory and it is not empty, but the volume is empty. | The files in the target directory are copied to volumes.                                                     |
+| 4   | If the volume is not empty.                                                  | There will be just the files inside the volume, regardless of whether the target directory is full or empty. |
 
 - Create `empty-vol` and `full-vol` volumes.
 
@@ -318,7 +318,7 @@ docker volume create empty-vol
 docker volume create full-vol
 ```
 
-- Run an `alpine` container with an interactive shell open, name the container as `vol-lesson`, attach the volume `full-vol` to `/test` mount point in the container, and add a command to run Alpine shell. 
+- Run an `alpine` container with an interactive shell open, name the container as `vol-lesson`, attach the volume `full-vol` to `/test` mount point in the container, and add a command to run Alpine shell.
 
 ```bash
 docker run -it --name vol-lesson -v full-vol:/test alpine ash
@@ -342,14 +342,14 @@ exit
 sudo ls /var/lib/docker/volumes/full-vol/_data
 ```
 
-- Run the `ondiacademy/hello-ondia` container with interactive shell open, name the container as `mycont`, and show the contents of `hello-ondia` directory.
+- Run the `ogulcancompany/hello-ogulcan` container with interactive shell open, name the container as `mycont`, and show the contents of `hello-ogulcan` directory.
 
 ```bash
-docker run -it --name mycont ondiacademy/hello-ondia sh
+docker run -it --name mycont ogulcancompany/hello-ogulcan sh
 / # ls
 bin           etc           home          media         opt           root          sbin          sys           usr
-dev           hello-ondia  lib           mnt           proc          run           srv           tmp           var
-/ # cd hello-ondia && ls
+dev           hello-ogulcan  lib           mnt           proc          run           srv           tmp           var
+/ # cd hello-ogulcan && ls
 app.py
 ```
 
@@ -357,19 +357,19 @@ app.py
 
 ### Situation 1 and 2:
 
-|No | Situation   | Behaviour |
-| ---- | ----------- | ------------ |
-| 1    | If there is no target directory. | The target directory is created, and files inside the volume are copied to this directory. |
-| 2    | If there is a target directory, but it is empty. | The files in the volume are copied to the target directory.  |
+| No  | Situation                                        | Behaviour                                                                                  |
+| --- | ------------------------------------------------ | ------------------------------------------------------------------------------------------ |
+| 1   | If there is no target directory.                 | The target directory is created, and files inside the volume are copied to this directory. |
+| 2   | If there is a target directory, but it is empty. | The files in the volume are copied to the target directory.                                |
 
 ![situation 1 and 2](situation-1-and-2.png)
 
-- Run the `ondiacademy/hello-ondia` container with interactive shell open, name the container as `try1`, attach the volume `full-vol` to `/test` mount point in the container, and show that `/test` directory is created and files inside the volume are copied to this directory.
+- Run the `ogulcancompany/hello-ogulcan` container with interactive shell open, name the container as `try1`, attach the volume `full-vol` to `/test` mount point in the container, and show that `/test` directory is created and files inside the volume are copied to this directory.
 
 ```bash
-docker run -it --name try1 -v full-vol:/test ondiacademy/hello-ondia sh
+docker run -it --name try1 -v full-vol:/test ogulcancompany/hello-ogulcan sh
 / # ls
-bin           dev           hello-ondia  lib           mnt           proc          run           srv           tmp           var
+bin           dev           hello-ogulcan  lib           mnt           proc          run           srv           tmp           var
 my            etc           home          media         opt          test          root          sbin          sys           usr
 / # cd test && ls
 full.txt
@@ -377,12 +377,11 @@ full.txt
 
 - `exit` the container
 
-
 ### Situation-3:
 
-|No| Situation   | Behaviour |
-| ---- | ----------- | ------------ |
-| 3    | If there is a target directory and it is not empty, but the volume is empty. | The files in the target directory are copied to volumes. |
+| No  | Situation                                                                    | Behaviour                                                |
+| --- | ---------------------------------------------------------------------------- | -------------------------------------------------------- |
+| 3   | If there is a target directory and it is not empty, but the volume is empty. | The files in the target directory are copied to volumes. |
 
 ![situation 3](situation-3.png)
 
@@ -392,14 +391,14 @@ full.txt
 sudo ls /var/lib/docker/volumes/empty-vol/_data
 ```
 
-- Run the `ondiacademy/hello-ondia` container with interactive shell open, name the container as `try2`, and attach the volume `empty-vol` to `/hello-ondia` mount point in the container.
+- Run the `ogulcancompany/hello-ogulcan` container with interactive shell open, name the container as `try2`, and attach the volume `empty-vol` to `/hello-ogulcan` mount point in the container.
 
 ```bash
-docker run -it --name try2 -v empty-vol:/hello-ondia ondiacademy/hello-ondia sh
+docker run -it --name try2 -v empty-vol:/hello-ogulcan ogulcancompany/hello-ogulcan sh
 / # ls
 bin           etc           home          media         opt           root          sbin          sys           usr
-dev           hello-ondia  lib           mnt           proc          run           srv           tmp           var
-/ # cd hello-ondia/ && ls
+dev           hello-ogulcan  lib           mnt           proc          run           srv           tmp           var
+/ # cd hello-ogulcan/ && ls
 app.py
 ```
 
@@ -414,9 +413,9 @@ app.py
 
 ### Situation-4:
 
-|No    | Situation   | Behaviour |
-| ---- | ----------- | ------------ |
-| 4    | If the volume is not empty. | There will be just the files inside the volume, regardless of whether the target directory is full or empty. |
+| No  | Situation                   | Behaviour                                                                                                    |
+| --- | --------------------------- | ------------------------------------------------------------------------------------------------------------ |
+| 4   | If the volume is not empty. | There will be just the files inside the volume, regardless of whether the target directory is full or empty. |
 
 ![situation 4](situation-4.png)
 
@@ -427,14 +426,14 @@ sudo ls /var/lib/docker/volumes/full-vol/_data
 full.txt
 ```
 
-- Run the `ondiacademy/hello-ondia` container with interactive shell open, name the container as `try3`, attach the volume `full-vol` to `/hello-ondia` mount point in the container, and show that we just see the files inside the volume regardless of  the target directory is full or empty.
+- Run the `ogulcancompany/hello-ogulcan` container with interactive shell open, name the container as `try3`, attach the volume `full-vol` to `/hello-ogulcan` mount point in the container, and show that we just see the files inside the volume regardless of the target directory is full or empty.
 
 ```bash
-docker run -it --name try3 -v full-vol:/hello-ondia ondiacademy/hello-ondia sh
+docker run -it --name try3 -v full-vol:/hello-ogulcan ogulcancompany/hello-ogulcan sh
 / # ls
 bin           etc           home          media         opt           root          sbin          sys           usr
-dev           hello-ondia  lib           mnt           proc          run           srv           tmp           var
-/ # cd hello-ondia/ && ls
+dev           hello-ogulcan  lib           mnt           proc          run           srv           tmp           var
+/ # cd hello-ogulcan/ && ls
 full.txt
 ```
 
@@ -475,11 +474,11 @@ root@4a1c7e5f394a:/usr/share/nginx/html# cat index.html
 
 - `exit` the container
 
-- Create a folder named  webpage, and an index.html file.
+- Create a folder named webpage, and an index.html file.
 
 ```bash
 mkdir webpage && cd webpage
-echo "<h1>Welcome to Ondia</h1>" > index.html
+echo "<h1>Welcome to ogulcan</h1>" > index.html
 ```
 
 - Run the `nginx` container in detached mode, name the container as `nginx-new`, attach the directory `/home/ec2-user/webpage` to `/usr/share/nginx/html` mount point in the container, and open <public-ip> in the browser and show the web page.
@@ -499,10 +498,10 @@ http://<public-ip>:8080
 ```bash
 docker exec -it nginx-new bash
 root@a7e3d276a147:/# cd usr/share/nginx/html
-root@a7e3d276a147:/usr/share/nginx/html# ls 
+root@a7e3d276a147:/usr/share/nginx/html# ls
 index.html
-root@a7e3d276a147:/usr/share/nginx/html# cat index.html 
-<h1>Welcome to Ondia</h1>
+root@a7e3d276a147:/usr/share/nginx/html# cat index.html
+<h1>Welcome to ogulcan</h1>
 ```
 
 - `exit` the container.
@@ -533,6 +532,7 @@ docker rm -f nginx-default nginx-new
 > Anonymous volumes are given a random name that's guaranteed to be unique within a given Docker host. Just like named volumes, anonymous volumes persist even if you remove the container that uses them, except if you use the `--rm` flag when creating the container, in which case the anonymous volume associated with the container is destroyed.
 
 > Why do we need anonymous volumes?
+>
 > - **Avoiding Container Layer Bloat:** The container’s writable layer is part of the storage driver, and constantly writing large or temporary files there can slow things down or lead to performance issues.
 > - **Write-Heavy Applications in Read-Only Containers:** When running containers with read-only root filesystems (--read-only), some applications still need write access to temporary directories (e.g., /tmp). Instead of making the whole container writable, an anonymous volume provides a temporary write location.
 > - **Sharing Data Between Container Restarts (Short-Lived Persistence):** If a container restarts, the writable layer is wiped, but anonymous volumes can persist across restarts within the same container lifecycle.
@@ -540,28 +540,28 @@ docker rm -f nginx-default nginx-new
 
 - If you create multiple containers consecutively that each use anonymous volumes, each container creates its own volume. Anonymous volumes aren't reused or shared between containers automatically. To share an anonymous volume between two or more containers, you must mount the anonymous volume using the random volume ID.
 
-- Run the following command to start a **BusyBox** container with an anonymous volume:  
+- Run the following command to start a **BusyBox** container with an anonymous volume:
 
 ```bash
 docker run -dit -v /data --name cont1 busybox sh
 ```
 
-- Check the available volumes and see there is a random-named volume is created. 
+- Check the available volumes and see there is a random-named volume is created.
 
 ```bash
 docker volume ls
 ```
+
 ```bash
 DRIVER    VOLUME NAME
 local     7cbbc785f43581c3300f0ad0bc0dccb61506582df2e56076eee34ab9d3a9bb63
 ```
 
-- Attach to the running container and create a file in ```/data```
+- Attach to the running container and create a file in `/data`
 
 ```bash
 docker exec -it cont1 sh
 ```
-
 
 - Once inside the container, run:
 
@@ -596,7 +596,7 @@ DRIVER    VOLUME NAME
 local     7cbbc785f43581c3300f0ad0bc0dccb61506582df2e56076eee34ab9d3a9bb63
 ```
 
-- We still see the volume because anonymous volumes persist even if you remove the container that uses them; however, if you use ```--rm``` flag when you create the container, the anonymous volume is also deleted when the container stops.
+- We still see the volume because anonymous volumes persist even if you remove the container that uses them; however, if you use `--rm` flag when you create the container, the anonymous volume is also deleted when the container stops.
 
 - Create another container that uses an anonymous volume.
 
@@ -604,11 +604,12 @@ local     7cbbc785f43581c3300f0ad0bc0dccb61506582df2e56076eee34ab9d3a9bb63
 docker run -dit --rm -v /data --name cont2 busybox sh
 ```
 
-- Check the available volumes and see if an anonymous volume has been created. 
+- Check the available volumes and see if an anonymous volume has been created.
 
 ```bash
 docker volume ls
 ```
+
 ```bash
 DRIVER    VOLUME NAME
 local     390ed0181d8e0c3c7a37eebbd5c3f3b4471feff146e0858b007cccd2e5634fac
@@ -619,6 +620,7 @@ local     390ed0181d8e0c3c7a37eebbd5c3f3b4471feff146e0858b007cccd2e5634fac
 ```bash
 docker stop cont2
 ```
+
 ```bash
 docker ps -a
 
