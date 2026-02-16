@@ -61,8 +61,8 @@ docker network ls
 - Run two `alpine` containers with an interactive shell, in detached mode, name the containers as `mycont1` and `mycont2`, and add a command to run Alpine shell. Here, explain what the detached mode means.
 
 ```bash
-docker run -dit --name mycont1 alpine ash
-docker run -dit --name mycont2 alpine ash
+docker container run -dit --name mycont1 alpine ash
+docker container run -dit --name mycont2 alpine ash
 ```
 
 - Show the list of running containers on Docker machine.
@@ -80,7 +80,7 @@ docker network inspect bridge | less
 - Get the IP of `mycont2` container.
 
 ```bash
-docker inspect mycont2 | grep IPAddress
+docker container inspect mycont2 | grep IPAddress
 ```
 
 - Connect to the `mycont1` container.
@@ -115,7 +115,7 @@ ping -c 4 google.com
 ping -c 4 172.17.0.3
 ```
 
-- Try to ping `mycont2` container by its name, it should face with bad address. Explain why it failed (due to the default bridge configuration not working with container names)
+- Try to ping `mycont2 `container by its name, it should face with bad address. Explain why it failed (due to the default bridge configuration not working with container names)
 
 ```bash
 ping -c 4 mycont2
@@ -126,8 +126,8 @@ ping -c 4 mycont2
 - Stop and delete the containers
 
 ```bash
-docker stop mycont1 mycont2
-docker rm mycont1 mycont2
+docker container stop mycont1 mycont2
+docker container rm mycont1 mycont2
 ```
 
 ## Part 3 - User-defined Network Bridge in Docker
@@ -135,7 +135,7 @@ docker rm mycont1 mycont2
 - Create a bridge network `mynet`.
 
 ```bash
-docker network create mynet
+docker network create --driver bridge mynet
 ```
 
 - List all networks available in Docker, and show the user-defined `mynet`.
@@ -150,20 +150,20 @@ docker network ls
 docker network inspect mynet
 ```
 
-- Run four `alpine` containers with interactive shell, in detached mode, name the containers as `mycont1`, `mycont2`, `mycont3`, and `mycont4`, and add a command to run Alpine shell. Here, 1st and 2nd containers should be in `mynet`, 3rd container should be in default network bridge, 4th container should be in both `mynet` and default network bridge.
+- Run four `alpine` containers with interactive shell, in detached mode, name the containers as `mycont1st`, `mycont2nd`, `mycont3rd`, and `mycont4th`, and adda  command to run Alpine shell. Here, 1st and 2nd containers should be in `mynet`, 3rd container should be in default network bridge, 4th container should be in both `mynet` and default network bridge.
 
 ```bash
-docker run -dit --name mycont1 --network mynet alpine ash
-docker run -dit --name mycont2 --network mynet alpine ash
-docker run -dit --name mycont3 alpine ash
-docker run -dit --name mycont4 alpine ash
+docker container run -dit --network mynet --name mycont1 alpine ash
+docker container run -dit --network mynet --name mycont2 alpine ash
+docker container run -dit --name mycont3 alpine ash
+docker container run -dit --name mycont4 alpine ash
 docker network connect mynet mycont4
 ```
 
 - List all running containers and show them up and running.
 
 ```bash
-docker ps
+docker container ls
 ```
 
 - Show the details of `mynet`, and explain the newly added containers. (1st, 2nd, and 4th containers should be in the list)
@@ -209,7 +209,7 @@ ping -c 4 google.com
 - Connect to the `mycont4` container, since it is in both network should connect all containers.
 
 ```bash
-docker exec -it mycont4 ash
+docker container exec -it mycont4 ash
 ```
 
 - Ping `mycont2` and `mycont1` containers by their name, ping `mycont3` container with its IP. Explain why we used IP instead of the name.
@@ -223,8 +223,8 @@ ping -c 4 172.17.0.2
 - Exit from `mycont4` container. Stop and remove all containers.
 
 ```bash
-docker stop mycont1 mycont2 mycont3 mycont4
-docker rm mycont1 mycont2 mycont3 mycont4
+docker container stop mycont1 mycont2 mycont3 mycont4
+docker container rm mycont1 mycont2 mycont3 mycont4
 ```
 
 - Delete `mynet` network
@@ -238,7 +238,7 @@ docker network rm mynet
 - Run an `nginx` web server, name the container as `ng`, and bind the web server to host port 8080 command to run Alpine shell. Explain `--rm` and `-p` flags and port binding.
 
 ```bash
-docker run --rm -d -p 8080:80 --name ng nginx
+docker container run --rm -d -p 8080:80 --name ng nginx
 ```
 
 - Add a security rule for protocol HTTP port 8080 and show that Nginx Web Server is running on Docker Machine.
@@ -250,13 +250,13 @@ http://ec2-18-232-70-124.compute-1.amazonaws.com:8080
 - Stop container `ng`, should be removed automatically due to `--rm` flag.
 
 ```bash
-docker stop ng
+docker container stop ng
 ```
 
 - Run an `nginx` web server, name the container as `my_nginx`, and connect the web server to the host network. 
 
 ```bash
-docker run --rm -dit --name my_nginx --network host nginx
+docker container run --rm -dit --network host --name my_nginx nginx
 ```
 
 - Show Nginx Web Server is running on Docker Machine.
@@ -268,7 +268,7 @@ http://ec2-18-232-70-124.compute-1.amazonaws.com
 - Show the details of the network interface configuration of `my_nginx` container.
 
 ```bash
-docker exec -it my_nginx sh
+docker container exec -it my_nginx sh
 apt-get update
 apt-get install net-tools
 ifconfig
@@ -285,13 +285,13 @@ ifconfig
 - Exit and stop container `my_nginx`, should be removed automatically due to `--rm` flag.
 
 ```bash
-docker stop my_nginx
+docker container stop my_nginx
 ```
 
 - Run an `alpine` container, name the container as `nullcontainer`, and connect the web server to no network. 
 
 ```bash
-docker run --rm -it --name nullcontainer --network none alpine
+docker container run --rm -it --network none --name nullcontainer alpine
 ```
 
 - Show the details of the network interface configuration of `nullcontainer` container.
