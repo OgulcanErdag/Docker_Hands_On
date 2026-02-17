@@ -117,17 +117,19 @@ The image contains all the dependencies for the application, including Python it
 
 https://flask-mysql.readthedocs.io/en/stable/
 
+### better form
+
 ```Dockerfile
 FROM python:3.12-alpine
 WORKDIR /code
 ENV FLASK_APP app.py
 ENV FLASK_RUN_HOST 0.0.0.0
 RUN apk add --no-cache gcc musl-dev linux-headers
-COPY requirements.txt requirements.txt
+COPY requirements.txt .
 RUN pip install -r requirements.txt
+COPY  . . 
 EXPOSE 5000
-COPY . .                  
-CMD ["flask", "run"]                     
+CMD [ "flask", "run" ]           
 ```
 
 ## NOT
@@ -135,8 +137,6 @@ CMD ["flask", "run"]
 ## COPY app.py .  same  COPY . . 
 ## CMD ["flask", "run"] and  exec form .  Handson-10
 ## CMD flask run  # shell form                        
-
-### better form
 
 ```Dockerfile
 FROM python:3.12-alpine
@@ -160,6 +160,8 @@ docker build -t my-image .
 ## CMD ["flask", "run"] --> best pr. Use flask own command ,libraries and ENV
 
 ## CMD ["python3", "./app.py] Its also work but you must delete "ENV FLASK_APP app.py" this ENV
+
+- Create a file called `docker build -t my-image .` in your project folder and define services and explain services.
 
 - Create a file called `compose.yaml` in your project folder and define services and explain services.
 
@@ -240,7 +242,7 @@ docker-compose help | less
 
 ```bash
 cd composetest
-docker-compose ps  # docker compose -f ~/projects/composetest/compose.yaml ps
+docker-compose ps -a # docker compose -f ~/projects/composetest/compose.yaml ps
 
 ```
 result:
@@ -330,8 +332,20 @@ docker ps -a
 
 ## Not 
 
-- docker-compose -p myproject up # override the name of project
-- docker-compose up --scale web=3 # scale up the service container
+```bash
+docker-compose -p myproject up # override the name of project
+docker-compose up --scale web=3 # scale up the service container
+docker-compose up --scale web=3 --scale redis=3 -d # scale up the service container and RAM
+```
+
+### ⚠️ Warning: When using --scale, if you have defined a fixed host port (like "8080:80") in the ports section of your service, you will get an error. This is because 3 containers cannot bind to the same host port at the same time. Instead, just expose the container port ("80") and let a reverse proxy (like Nginx or Traefik) handle the routing.
+
+```bash
+docker-compose -p myproject down # delete your project with compose 
+docker-compose -p myproject down -v # delete your volume 
+docker-compose -p myproject down --rmi all # delete your volume from your project 
+docker-compose -p myproject down -v --rmi all #delete everything from your project
+```
 
 ## Not
 
