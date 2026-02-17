@@ -1,24 +1,30 @@
-# Hands-on Docker-07: Dockerize To-Do Web API Developed in Python Flask
+# Hands-on Docker-06: Docker Compose Operations
 
-The purpose of this hands-on training is to Dockerize a Python Flask application with Dockerfile and Docker Compose.
+The purpose of this hands-on training is to give the students an understanding of Docker Compose.
 
 ## Learning Outcomes
 
 At the end of this hands-on training, students will be able to;
 
-- Build Docker images.
+- explain what Docker Compose is.
 
-- Configure Docker Compose to run the Python Flask app.
+- install docker-compose
+
+- explain what the `compose.yml` is.
+
+- build a simple Python web application running on Docker Compose.
 
 ## Outline
 
 - Part 1 - Launch a Docker Machine Instance and Connect with SSH
 
-- Part 2 - Configuring Multi-Containers (Python Flask App and MySQL) with Docker Compose
+- Part 2 - Installing Docker Compose
+
+- Part 3 - Building a Web Application using Docker Compose
 
 ## Part 1 - Launch a Docker Machine Instance and Connect with SSH
 
-- Launch a Docker machine on Amazon Linux 2 AMI with a security group allowing SSH connections using the [Cloudformation Template for Docker Machine Installation](../S1A-docker-01-installing-on-ec2-linux2/docker-installation-template.yml).
+- Launch a Docker machine on Amazon Linux 2 AMI with a security group allowing SSH connections using the [Cloudformation Template for Docker Machine Installation](../docker-01-installing-on-ec2-linux2/docker-installation-template.yml).
 
 - Connect to your instance with SSH.
 
@@ -26,409 +32,326 @@ At the end of this hands-on training, students will be able to;
 ssh -i .ssh/call-training.pem ec2-user@ec2-3-133-106-98.us-east-2.compute.amazonaws.com
 ```
 
-## Part 2 - Configuring Multi-Containers (Python Flask App and MySQL) with Docker Compose
+## Part 2 - Installing Docker Compose
 
-- Create a folder for the project and change into your project directory:
+- For Linux systems, after installing Docker, you need to install Docker Compose separately. But the Docker Desktop App for Mac and Windows includes `Docker Compose` as a part of those desktop installs.
+
+- Download the current stable release of `Docker Compose` executable.
+https://docs.docker.com/engine/install/ubuntu/
+https://github.com/docker/compose/releases
+```bash
+sudo curl -SL https://github.com/docker/compose/releases/download/v2.40.0/docker-compose-linux-x86_64 -o /usr/local/bin/docker-compose
+```
+
+- Apply executable permissions to the binary:
+
+```bash
+sudo chmod +x /usr/local/bin/docker-compose
+```
+
+- Check if the `Docker Compose`is working. Should see something like `Docker Compose version v2.26.0`
+
+```bash
+docker-compose --version
+```
+
+## Part 3 - Building a Web Application using Docker Compose
+
+- Create a folder for the project:
   
 ```bash
-mkdir to-do-api
-cd to-do-api
+mkdir composetest
+cd composetest
 ```
 
-- Create a `to-do-api.py` with the following code. 
+- Create a file called `app.py` in your project folder and paste the following Python code. In this example, the application uses the Flask framework and maintains a hit counter in Redis, and  `redis` is the hostname of the `Redis container` on the application’s network. We use the default port for Redis, `6379`.
 
-```bash
-# Import Flask modules
-from flask import Flask, jsonify, abort, request, make_response
-from flaskext.mysql import MySQL
+```python
+import time
 
-# Create an object named app
+import redis
+from flask import Flask
+
 app = Flask(__name__)
+cache = redis.Redis(host='redis', port=6379)
 
-# Configure mysql database
-app.config['MYSQL_DATABASE_HOST'] = 'database'
-app.config['MYSQL_DATABASE_USER'] = 'myuser'
-app.config['MYSQL_DATABASE_PASSWORD'] = 'Password_1'
-app.config['MYSQL_DATABASE_DB'] = 'todo_db'
-app.config['MYSQL_DATABASE_PORT'] = 3306
-mysql = MySQL()
-mysql.init_app(app)
-connection = mysql.connect()
-connection.autocommit(True)
-cursor = connection.cursor()
 
-# Write a function named `init_todo_db` which initializes the todo db
-# Create P table within sqlite db and populate with sample data
-# Execute the code below only once.
-def init_todo_db():
-    # Check if the 'todos' table exists
-    cursor.execute("SHOW TABLES LIKE 'todos';")
-    result = cursor.fetchone()
+def get_hit_count():
+    retries = 5
+    while True:
+        try:
+            return cache.incr('hits')
+        except redis.exceptions.ConnectionError as exc:
+            if retries == 0:
+                raise exc
+            retries -= 1
+            time.sleep(0.5)
 
-    # If the 'todos' table does not exist, create it and populate with sample data
-    if not result:
-        todos_table = """
-        CREATE TABLE todo_db.todos(
-        task_id INT NOT NULL AUTO_INCREMENT,
-        title VARCHAR(100) NOT NULL,
-        description VARCHAR(200),
-        is_done BOOLEAN NOT NULL DEFAULT 0,
-        PRIMARY KEY (task_id)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-        """
-        data = """
-        INSERT INTO todo_db.todos (title, description, is_done)
-        VALUES
-            ("Project 2", "Work on project 2 with teammates", 1 ),
-            ("Cloudformation Documentation", "Study and learn how to read cloudformation docs", 0),
-            ("Work on CC Phonebook", "Solve python coding challenge about phonebook app", 0);
-        """
-        cursor.execute(todos_table)
-        cursor.execute(data)
 
-# Write a function named `get_all_tasks` which gets all tasks from the todos table in the db,
-# and return the result as a list of dictionary 
-# `[{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'} ]`.
-def get_all_tasks():
-    query = """
-    SELECT * FROM todos;
-    """
-    cursor.execute(query)
-    result = cursor.fetchall()
-    tasks =[{'task_id':row[0], 'title':row[1], 'description':row[2], 'is_done': bool(row[3])} for row in result]
-    return tasks
-
-# Write a function named `find_task` which finds task using task_id from the todos table in the db,
-# and return the result as a list of dictionary 
-# `{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'}`.
-def find_task(id):
-    query = f"""
-    SELECT * FROM todos WHERE task_id={id};
-    """
-    cursor.execute(query)
-    row = cursor.fetchone()
-    task = None
-    if row is not None:
-        task = {'task_id':row[0], 'title':row[1], 'description':row[2], 'is_done': bool(row[3])}
-    return task
-
-# Write a function named `insert_task` which inserts the task into the todos table in the db,
-# and return the newly added task as a dictionary 
-# `{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'}`.
-def insert_task(title, description):
-    insert = f"""
-    INSERT INTO todos (title, description)
-    VALUES ('{title}', '{description}');
-    """
-    cursor.execute(insert)
-
-    query = f"""
-    SELECT * FROM todos WHERE task_id={cursor.lastrowid};
-    """
-    cursor.execute(query)
-    row = cursor.fetchone()
-    return {'task_id':row[0], 'title':row[1], 'description':row[2], 'is_done': bool(row[3])}
-
-# Write a function named `change_task` which updates the task into the todos table in the db,
-# and return updated added task as a dictionary 
-# `{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'}`.
-def change_task(task):
-    update = f"""
-    UPDATE todos
-    SET title='{task['title']}', description = '{task['description']}', is_done = {task['is_done']}
-    WHERE task_id= {task['task_id']};
-    """
-    cursor.execute(update)
-
-    query = f"""
-    SELECT * FROM todos WHERE task_id={task['task_id']};
-    """
-    cursor.execute(query)
-    row = cursor.fetchone()
-    return {'task_id':row[0], 'title':row[1], 'description':row[2], 'is_done': bool(row[3])}
-
-# Write a function named `remove_task` which removes the task from the todos table in the db,
-# and returns True if successfully deleted or False.
-def remove_task(task):
-    delete = f"""
-    DELETE FROM todos
-    WHERE task_id= {task['task_id']};
-    """
-    cursor.execute(delete)
-
-    query = f"""
-    SELECT * FROM todos WHERE task_id={task['task_id']};
-    """
-    cursor.execute(query)
-    row = cursor.fetchone()
-    return True if row is None else False
-
-# Write a function named `home` which returns 'Welcome to the Callahan's To-Do API Service',
-# and assign to the static route of ('/')
 @app.route('/')
-def home():
-    return "Welcome to Callahan's To-Do API Service"
-
-
-# Write a function named `get_tasks` which returns all tasks in JSON format for `GET`,
-# and assign to the static route of ('/todos')
-@app.route('/todos', methods=['GET'])
-def get_tasks():
-    return jsonify({'tasks':get_all_tasks()})
-
-
-# Write a function named `get_tasks` which returns the task with the given task_id in JSON format for `GET`,
-# and assign to the static route of ('/todos/<int:task_id>')
-@app.route('/todos/<int:task_id>', methods = ['GET'])
-def get_task(task_id):
-    task = find_task(task_id)
-    if task == None:
-        abort(404)
-    return jsonify({'task found': task})
-
-# Write a function named `add_task` which adds a new task using `POST` methods,
-# and assign to the static route of ('/todos')
-@app.route('/todos', methods=['POST'])
-def add_task():
-    if not request.json or not 'title' in request.json:
-        abort(400)
-    return jsonify({'newly added task':insert_task(request.json['title'], request.json.get('description', ''))}), 201
-
-# Write a function named `update_task` which updates an existing task using `PUT` method,
-# and assign to the static route of ('/todos/<int:task_id>')
-@app.route('/todos/<int:task_id>', methods=['PUT'])
-def update_task(task_id):
-    task = find_task(task_id)
-    if task == None:
-        abort(404)
-    if not request.json:
-        abort(400)
-    task['title'] = request.json.get('title', task['title'])
-    task['description'] = request.json.get('description', task['description'])
-    task['is_done'] = int(request.json.get('is_done', int(task['is_done'])))
-    return jsonify({'updated task': change_task(task)})
-
-# Write a function named `delete_task` which updates an existing task using `DELETE` method,
-# and assign to the static route of ('/todos/<int:task_id>')
-@app.route('/todos/<int:task_id>', methods=['DELETE'])
-def delete_task(task_id):
-    task = find_task(task_id)
-    if task == None:
-        abort(404)
-    return jsonify({'result':remove_task(task)})
-
-# Write a function named `not_found` for handling 404 errors which returns 'Not found' in JSON format.
-@app.errorhandler(404)
-def not_found(error):
-    return make_response(jsonify({'error': 'Not found'}), 404)
-
-# Write a function named `bad_request` for handling 400 errors which returns 'Bad Request' in JSON format.
-@app.errorhandler(400)
-def bad_request(error):
-    return make_response(jsonify({'error': 'Bad request'}), 400)
-
-# Add a statement to run the Flask application which can be reached from any host on port 80.
-if __name__== '__main__':
-    init_todo_db()
-    # app.run(debug=True)
-    app.run(host='0.0.0.0', port=80)
+def hello():
+    count = get_hit_count()
+    return 'Hello World! I have been seen {} times.\n'.format(count)
 ```
 
-- Create another file called `requirements.txt` in your project folder, and add the following as a package list.
+- Create another file called `requirements.txt` in your project folder, and add `flask` and `redis` as package list.
 
 ```bash
-flask==2.3.3
-flask-mysql
+flask
+redis
 ```
 
-- Create a Dockerfile with the following.
+- Create a `Dockerfile` which builds a Docker image and explain what it does.
 
-```bash
-FROM python:alpine
-COPY . /app
-WORKDIR /app
+```text
+The image contains all the dependencies for the application, including Python itself.
+1. Build an image starting with the Python 3.12 image.
+2. Set the working directory to `/code`.
+3. Set environment variables used by the flask command.
+4. Install gcc and other dependencies
+5. Copy `requirements.txt` and install the Python dependencies.
+6. Add metadata to the image to describe that the container is listening on port 5000
+7. Copy the current directory `.` in the project to the workdir `.` in the image.
+8. Set the default command for the container to flask run.
+```
+
+https://flask-mysql.readthedocs.io/en/stable/
+
+```Dockerfile
+FROM python:3.12-alpine
+WORKDIR /code
+ENV FLASK_APP app.py
+ENV FLASK_RUN_HOST 0.0.0.0
+RUN apk add --no-cache gcc musl-dev linux-headers
+COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
-EXPOSE 80
-CMD python ./to-do-api.py
+EXPOSE 5000
+COPY . .                  
+CMD ["flask", "run"]                     
 ```
-## Not:
 
-2.Dockerfile better version:
+## NOT
 
-```bash
+## COPY app.py .  same  COPY . . 
+## CMD ["flask", "run"] and  exec form .  Handson-10
+## CMD flask run  # shell form                        
 
-FROM python:3.11-alpine  # docker image pull docker.io/library/python:3.11-alpine for testing .This image avaible or not
-WORKDIR /app
+### better form
+
+```Dockerfile
+FROM python:3.12-alpine
+ENV FLASK_APP app.py
+ENV FLASK_RUN_HOST 0.0.0.0
+RUN apk add --no-cache gcc musl-dev linux-headers
+WORKDIR /code
 COPY requirements.txt .
 RUN pip install -r requirements.txt
-COPY to-do-api.py app.py
-EXPOSE 80
-CMD ["python", "./app.py"]
-
+COPY app.py .                           
+EXPOSE 5000
+CMD ["flask", "run"]                    # exec form
 ```
 
-- Create a file called `compose.yml` in your project folder with the following setup.
+```bash
+docker build -t my-image .
+```
+
+## NOT:
+
+## CMD ["flask", "run"] --> best pr. Use flask own command ,libraries and ENV
+
+## CMD ["python3", "./app.py] Its also work but you must delete "ENV FLASK_APP app.py" this ENV
+
+- Create a file called `compose.yaml` in your project folder and define services and explain services.
+
+- This Compose file defines two services: web and Redis.
+
+### Web service
+The web service uses an image that’s built from the Dockerfile in the current directory. It then binds the container and the host machine to the exposed port, 5000. This example service uses the default port for the Flask web server, 5000.
+
+### Redis service
+The Redis service uses a public Redis image pulled from the Docker Hub registry.
+
+```yaml  - https://docs.docker.com/reference/compose-file/services/
+services:   
+  web:
+    build: .     # When your Dockerfile in a directory you must write it's Path "build: ./app"
+    ports:
+      - "5000:5000"   # When you wnat to reach your cont from outside you must expose a Port.
+  redis:
+    image: "redis:alpine"  # https://hub.docker.com/_/redis
+```
+
+## NOT:
+
+- When you have with different name for Dockerfile you must write "contex: ./app" and "file: my_dockerfile"
 
 ```yaml
-services:
-    database:
-        image: mysql:5.7   # https://hub.docker.com/_/mysql
-        environment:       
-            MYSQL_ROOT_PASSWORD: R1234r
-            MYSQL_DATABASE: todo_db
-            MYSQL_USER: myuser
-            MYSQL_PASSWORD: Password_1
-        networks:
-            - mynet
-        volumes:
-        - mysql-data:/var/lib/mysql  # https://hub.docker.com/_/mysql
-    myapp:
-        build: .
-        restart: always  # https://docs.docker.com/reference/compose-file/services/#restart
-        depends_on:
-            - database
-        ports:
-            - "80:80"
-        networks:
-            - mynet
-
-networks:
-    mynet:
-        driver: bridge # driver: bridge already default create
-
-volumes:
-  mysql-data:
+build:
+  context: ./app
+  file: my-dockerfile
 ```
 
-```bash
-cd to-do-api
-```
-
-- Compose your application.
-
-```bash
-docker-compose up -d
-```
-
-- List Docker containers and show that there are multiple containers.
-
-```bash
-docker container ls
-```
-
-- List Docker images and explain `to-do-api_myapp` as the image name.
-
-```bash
-docker image ls
-```
-
-- List Docker networks and explain `to-do-api_mynet`.
-
-```bash
-docker network ls
-```
-
-https://docs.docker.com/reference/compose-file/services/#healthcheck
-
-## compose.yaml with health check
+or
 
 ```yaml
-services:
-    database:
-        image: mysql:5.7   # https://hub.docker.com/_/mysql
-        environment:       
-            MYSQL_ROOT_PASSWORD: R1234r
-            MYSQL_DATABASE: todo_db
-            MYSQL_USER: myuser
-            MYSQL_PASSWORD: Password_1
 
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:3306"]
-            interval: 5s
-            timeout: 3s
-            retries: 3
-            start_period: 30s 
+build:
+  context: .
+  file: ./app/my-dockerfile
+```
 
-        networks:
-            - mynet
-        volumes:
-        - mysql-data:/var/lib/mysql  # https://hub.docker.com/_/mysql
-    myapp:
-        build: .
-        restart: always  # https://docs.docker.com/reference/compose-file/services/#restart
-        depends_on:
-          database:
-            condition: service_healthy
-        ports:
-            - "80:80"
-        networks:
-            - mynet
+- Build and run your app with `Docker Compose` and explain the ongoing process.
 
-networks:
-    mynet:
-        driver: bridge # driver: bridge already default create
-
-volumes:
-  mysql-data:
-  
+```text
+Docker compose pulls a Redis image, builds an image for our app code,
+and starts the services defined. In this case, the code is statically copied into the image at build time.
 ```
 
 ```bash
-docker-compose up -d
+docker-compose up # docker-compose up -d
+docker ps -a
 ```
+!!!!!!!!!!!!!!!!!!!!!!!
+- Add a rule within the security group of Docker Instance allowing TCP connections through port `5000` from anywhere in the AWS Management Console.
+
+```text
+Type        : Custom TCP
+Protocol    : TCP
+Port Range  : 5000
+Source      : 0.0.0.0/0
+Description : -
+```
+
+- Enter http://`ec2-host-name`:5000/ in a browser to see the application running.
+
+
+- Open another terminal and connect to the EC2 instance. 
+
+
+- Run either `docker-compose` or `docker-compose help` to see the help docs about Docker Compose commands.
 
 ```bash
-docker ps
+docker-compose help | less
 ```
 
-- Check if the To-Do App is running by entering `http://<ec2-host-name>` in a browser.
+- Run the `docker-compose ps` command. Notice that it will not work, producing an error. Mention that docker-compose commands must be implemented in the related directory.
 
-- Test the application.
+- Change the directory to "composetest" and run the `docker-compose ps` command to see the containers. Show the naming convention of docker-compose.
 
-  - List all tasks in  the `To Do List` API using the `/todos` path and the HTTP `GET` method with the `curl` command.
-
-  ```bash
-
-curl http://<ec2-host-name>/todos
+```bash
+cd composetest
+docker-compose ps  # docker compose -f ~/projects/composetest/compose.yaml ps
 
 ```
-curl http://34.224.215.188/todos
+result:
+composetest-web-1
+composetest-redis-1
+Format:
+- <foldername>-<service>-<index>
 
-  - Retrieve task with `id=3` using `/todos/3` path and HTTP `GET` method with `curl` command.
-  
-  
-  curl http://<ec2-host-name>/todos/3
-  ```
+- Run the `docker-compose images` command to see the images used for the container. Show the naming convention of docker-compose.
 
-  - Create a new task in the `To Do List` using the `/todos` path and the HTTP `POST` method with the `curl` command.
+```bash
+docker images
+docker-compose images
+docker ps -a
+docker network ls  # containers must in same network when they connect with eachother. see the notes in the end of the file
+docker network inspect 06d97c723db6 #networks id ,subnets ...
+```
 
-  ```bash
-  curl -H "Content-Type: application/json" -X POST -d '{"title":"Get some REST", "description":"REST in Peace"}' http://34.224.215.188/todos
-  ```
+- Run the `docker-compose config` command to see the configuration of the docker-compose file. Show that it has a reverse structure.
 
-  - Delete task with `id=1` using `/todos/1` path and HTTP `DELETE` method with `curl` command.
-  
-  ```bash
-  curl -H "Content-Type: application/json" -X DELETE http://<ec2-host-name>/todos/1
-  ```
+```bash
+docker-compose config
+```
 
-  - List all tasks in  the `To Do List` API using the `/todos` path and the HTTP `GET` method with the `curl` command.
+- Go back to the first terminal. Press `Ctrl+C` to stop containers, and run `docker ps -a` to see containers created by Docker Compose.
 
-  ```bash
-  curl http://<ec2-host-name>/todos
-  ```
+- Remove the containers with `Docker Compose`.
 
-- Stop and remove containers, networks, and images.
+```bash
+docker-compose down  # services and network removed but volumes and images are not.!!!! 
+```
+
+- Run `docker ps -a` to see if containers are removed.
+
+```bash
+docker ps -a
+```
+
+- Run the `docker images` command to see if images are not removed. Notice that images and volumes are not removed with the `docker-compose down` command.
+
+```bash
+docker images
+```
+
+- Open the "app.py" file with an editor. Change the last section as mentioned here:
+
+```python
+@app.route('/')
+def hello():
+    count = get_hit_count()
+    return 'Hello World! This is the modified version-VERSION-2. I have been seen {} times.\n'.format(count)
+```
+- Save the file. And run the `docker-compose up` command.
+
+```bash
+docker-compose up
+```
+- Enter http://`ec2-host-name`:5000/ in a browser, and check if the app has updated. Show that the changes do not occur in the browser. Explain that it needs `docker-compose up --build` command to refresh the image. 
+
+- Press `Ctrl+C` to stop containers. Run `docker-compose down` command and remove the containers.
 
 ```bash
 docker-compose down
 ```
 
-- List Docker images, networks, containers, and volumes.
+- Run `docker-compose up --build` command to update the image. 
 
 ```bash
-docker image ls
-docker container ls
-docker network ls
-docker volume ls
+docker-compose up --build
+docker-compose up -d --build # web web1
+```
+
+- Enter http://`ec2-host-name`:5000/ in a browser, and check if the app has updated. Show that the changes took place on the browser. 
+
+
+- Press `Ctrl+C` to stop containers. Run the `docker-compose down` command and remove the containers.
+
+```bash
+docker-compose down
+```
+
+- Run `docker ps -a` to see if containers are removed.
+
+```bash
+docker ps -a
+```
+
+## Not 
+
+- docker-compose -p myproject up # override the name of project
+- docker-compose up --scale web=3 # scale up the service container
+
+## Not
+
+If you change the network name, you must define the same network for all connected services.
+
+```yaml 
+services:
+  web:
+    build: .
+    ports:
+      - "5000:5000"
+    networks:
+      - mynetwork
+
+  redis:
+    image: redis:alpine
+    networks:
+      - mynetwork
+
+networks:
+  mynetwork:
+    
 ```
