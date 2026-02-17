@@ -18,7 +18,7 @@ At the end of this hands-on training, students will be able to;
 
 ## Part 1 - Launch a Docker Machine Instance and Connect with SSH
 
-- Launch a Docker machine on Amazon Linux 2 AMI with a security group allowing SSH connections using the [Cloudformation Template for Docker Machine Installation](../S1A-docker-01-installing-on-ec2-linux2/docker-installation-template.yml).
+- Launch a Docker machine on Amazon Linux 2 AMI with a security group allowing SSH connections using the [Cloudformation Template for Docker Machine Installation](../docker-01-installing-on-ec2-linux2/docker-installation-template.yml).
 
 - Connect to your instance with SSH.
 
@@ -29,13 +29,13 @@ ssh -i .ssh/call-training.pem ec2-user@ec2-3-133-106-98.us-east-2.compute.amazon
 ## Part 2 - Configuring Multi-Containers (Python Flask App and MySQL) with Docker Compose
 
 - Create a folder for the project and change into your project directory:
-  
+
 ```bash
 mkdir to-do-api
 cd to-do-api
 ```
 
-- Create a `to-do-api.py` with the following code. 
+- Create a `to-do-api.py` with the following code.
 
 ```bash
 # Import Flask modules
@@ -87,7 +87,7 @@ def init_todo_db():
         cursor.execute(data)
 
 # Write a function named `get_all_tasks` which gets all tasks from the todos table in the db,
-# and return the result as a list of dictionary 
+# and return the result as a list of dictionary
 # `[{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'} ]`.
 def get_all_tasks():
     query = """
@@ -99,7 +99,7 @@ def get_all_tasks():
     return tasks
 
 # Write a function named `find_task` which finds task using task_id from the todos table in the db,
-# and return the result as a list of dictionary 
+# and return the result as a list of dictionary
 # `{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'}`.
 def find_task(id):
     query = f"""
@@ -113,7 +113,7 @@ def find_task(id):
     return task
 
 # Write a function named `insert_task` which inserts the task into the todos table in the db,
-# and return the newly added task as a dictionary 
+# and return the newly added task as a dictionary
 # `{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'}`.
 def insert_task(title, description):
     insert = f"""
@@ -130,7 +130,7 @@ def insert_task(title, description):
     return {'task_id':row[0], 'title':row[1], 'description':row[2], 'is_done': bool(row[3])}
 
 # Write a function named `change_task` which updates the task into the todos table in the db,
-# and return updated added task as a dictionary 
+# and return updated added task as a dictionary
 # `{'task_id': 1, 'title':'XXXX', 'description': 'XXXXXX', 'is_done': 'Yes' or 'No'}`.
 def change_task(task):
     update = f"""
@@ -251,6 +251,7 @@ RUN pip install -r requirements.txt
 EXPOSE 80
 CMD python ./to-do-api.py
 ```
+
 ## Not:
 
 2.Dockerfile better version:
@@ -271,30 +272,30 @@ CMD ["python", "./app.py"]
 
 ```yaml
 services:
-    database:
-        image: mysql:5.7   # https://hub.docker.com/_/mysql
-        environment:       
-            MYSQL_ROOT_PASSWORD: R1234r
-            MYSQL_DATABASE: todo_db
-            MYSQL_USER: myuser
-            MYSQL_PASSWORD: Password_1
-        networks:
-            - mynet
-        volumes:
-        - mysql-data:/var/lib/mysql  # https://hub.docker.com/_/mysql
-    myapp:
-        build: .
-        restart: always  # https://docs.docker.com/reference/compose-file/services/#restart
-        depends_on:
-            - database
-        ports:
-            - "80:80"
-        networks:
-            - mynet
+  database:
+    image: mysql:5.7 # https://hub.docker.com/_/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: R1234r
+      MYSQL_DATABASE: todo_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: Password_1
+    networks:
+      - mynet
+    volumes:
+      - mysql-data:/var/lib/mysql # https://hub.docker.com/_/mysql
+  myapp:
+    build: .
+    restart: always # https://docs.docker.com/reference/compose-file/services/#restart
+    depends_on:
+      - database
+    ports:
+      - "80:80"
+    networks:
+      - mynet
 
 networks:
-    mynet:
-        driver: bridge # driver: bridge already default create
+  mynet:
+    driver: bridge # driver: bridge already default create
 
 volumes:
   mysql-data:
@@ -334,43 +335,42 @@ https://docs.docker.com/reference/compose-file/services/#healthcheck
 
 ```yaml
 services:
-    database:
-        image: mysql:5.7   # https://hub.docker.com/_/mysql
-        environment:       
-            MYSQL_ROOT_PASSWORD: R1234r
-            MYSQL_DATABASE: todo_db
-            MYSQL_USER: myuser
-            MYSQL_PASSWORD: Password_1
+  database:
+    image: mysql:5.7 # https://hub.docker.com/_/mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: R1234r
+      MYSQL_DATABASE: todo_db
+      MYSQL_USER: myuser
+      MYSQL_PASSWORD: Password_1
 
-        healthcheck:
-            test: ["CMD", "curl", "-f", "http://localhost:3306"]
-            interval: 5s
-            timeout: 3s
-            retries: 3
-            start_period: 30s 
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3306"]
+      interval: 5s
+      timeout: 3s
+      retries: 3
+      start_period: 30s
 
-        networks:
-            - mynet
-        volumes:
-        - mysql-data:/var/lib/mysql  # https://hub.docker.com/_/mysql
-    myapp:
-        build: .
-        restart: always  # https://docs.docker.com/reference/compose-file/services/#restart
-        depends_on:
-          database:
-            condition: service_healthy
-        ports:
-            - "80:80"
-        networks:
-            - mynet
+    networks:
+      - mynet
+    volumes:
+      - mysql-data:/var/lib/mysql # https://hub.docker.com/_/mysql
+  myapp:
+    build: .
+    restart: always # https://docs.docker.com/reference/compose-file/services/#restart
+    depends_on:
+      database:
+        condition: service_healthy
+    ports:
+      - "80:80"
+    networks:
+      - mynet
 
 networks:
-    mynet:
-        driver: bridge # driver: bridge already default create
+  mynet:
+    driver: bridge # driver: bridge already default create
 
 volumes:
   mysql-data:
-  
 ```
 
 ```bash
@@ -384,10 +384,11 @@ docker ps
 - Check if the To-Do App is running by entering `http://<ec2-host-name>` in a browser.
 
 - Test the application.
-
-  - List all tasks in  the `To Do List` API using the `/todos` path and the HTTP `GET` method with the `curl` command.
+  - List all tasks in the `To Do List` API using the `/todos` path and the HTTP `GET` method with the `curl` command.
 
   ```bash
+
+  ```
 
 curl http://<ec2-host-name>/todos
 
@@ -395,28 +396,28 @@ curl http://<ec2-host-name>/todos
 curl http://34.224.215.188/todos
 
   - Retrieve task with `id=3` using `/todos/3` path and HTTP `GET` method with `curl` command.
-  
-  
+
+
   curl http://<ec2-host-name>/todos/3
-  ```
+```
 
-  - Create a new task in the `To Do List` using the `/todos` path and the HTTP `POST` method with the `curl` command.
+- Create a new task in the `To Do List` using the `/todos` path and the HTTP `POST` method with the `curl` command.
 
-  ```bash
-  curl -H "Content-Type: application/json" -X POST -d '{"title":"Get some REST", "description":"REST in Peace"}' http://34.224.215.188/todos
-  ```
+```bash
+curl -H "Content-Type: application/json" -X POST -d '{"title":"Get some REST", "description":"REST in Peace"}' http://34.224.215.188/todos
+```
 
-  - Delete task with `id=1` using `/todos/1` path and HTTP `DELETE` method with `curl` command.
-  
-  ```bash
-  curl -H "Content-Type: application/json" -X DELETE http://<ec2-host-name>/todos/1
-  ```
+- Delete task with `id=1` using `/todos/1` path and HTTP `DELETE` method with `curl` command.
 
-  - List all tasks in  the `To Do List` API using the `/todos` path and the HTTP `GET` method with the `curl` command.
+```bash
+curl -H "Content-Type: application/json" -X DELETE http://<ec2-host-name>/todos/1
+```
 
-  ```bash
-  curl http://<ec2-host-name>/todos
-  ```
+- List all tasks in the `To Do List` API using the `/todos` path and the HTTP `GET` method with the `curl` command.
+
+```bash
+curl http://<ec2-host-name>/todos
+```
 
 - Stop and remove containers, networks, and images.
 
